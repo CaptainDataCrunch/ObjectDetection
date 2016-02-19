@@ -1,10 +1,15 @@
+__authors__ = "Isabel Litton, Vincent Pham, Henry Tom"
+__team__ = "CaptainDataCrunch"
+
 import cv2
 import numpy as np
 import glob
 from sklearn import tree
 import time
+import sys
 
-imagefile = '/Users/vincentpham/Desktop/tester/image_0006.jpg'
+sys.setrecursionlimit(10000)
+imagefile = '/Users/vincentpham/Desktop/tester/12735705_10153802234675590_1868874901_n.jpg'
 imagefile2 = '/Users/vincentpham/Desktop/tester/image_0467.jpg'
 imagefile3 = '/Users/vincentpham/Desktop/tester/image_0294.jpg'
 imagefile4 = '/Users/vincentpham/Desktop/tester/image_0078.jpg'
@@ -13,16 +18,24 @@ imagefile4 = '/Users/vincentpham/Desktop/tester/image_0078.jpg'
 neg_filepath = '/Users/vincentpham/Desktop/tester/negative/'
 pos_filepath = '/Users/vincentpham/Desktop/tester/positive/'
 
+neg_testpath = '/Users/vincentpham/Desktop/tester/negative_test/'
+pos_testpath = '/Users/vincentpham/Desktop/tester/positive_test/'
+
 def load_data(filepath, label_value):
-    """
-    loads in image and label
-    Return: list of tuples(ndarray, label)
-    """
+	"""Loads in image and label
+    :param filepath: path of the directory containing all files
+    :param label_value: classification label
+	:return: list of tuples(ndarray, label)
+	"""
     files = glob.glob(filepath + '*.jpg')
     labels = [label_value for i in range(len(files))]
     return zip(files, labels)
 
-def readImage(imagefile):
+def read_image(imagefile):
+    """Change image to grayscale
+    :param imagefile: image
+    :return: image in grayscale
+    """
     # read in image
     img = cv2.imread(imagefile)
 
@@ -32,6 +45,12 @@ def readImage(imagefile):
     return gray_img
   
 def s(gray_img,x,y):
+  	"""Cumulative row sum to calculate integral image
+    :param gray_img: image in gray scale
+    :param x: x coordinate
+    :param y: y coordinate
+    :return: row sum of pixel intensities
+    """
     sums = 0
     if y == -1:
         return sums
@@ -40,6 +59,12 @@ def s(gray_img,x,y):
     return sums
 
 def ii(gray_img,x,y):
+  	"""Cumulative column sum to calcualte integral image
+    :param gray_img: image in gray scale
+    :param x: x coordinate
+    :param y: y coordinate
+    :return: column sum of pixel intensities
+    """
     sums = 0
     if x == -1:
         return sums
@@ -48,6 +73,11 @@ def ii(gray_img,x,y):
     return sums
   
 def integralImage(gray_img, locations):
+  	"""Calculates integral image to compute rectangle features
+    :param gray_img: image in gray scale
+    :param x0, y0, x1, y1: coordinates describing the rectangle
+    :return: sum of all the pixels above and to the left of (x1, y1)
+    """
     x0, y0, x1, y1 = locations
     D = ii(gray_img,x1,y1)
     C = ii(gray_img,x0,y1)
@@ -58,6 +88,10 @@ def integralImage(gray_img, locations):
     return diff
 
 def partition_image(gray_img):
+  	"""Splits image into 3x3 windows
+    :param gray_img: array of pixels
+    :return: list of tuples where each tuple = (top left corner of window, bottom right corner of window)
+    """
     width, height = gray_img.shape
     x = width/3
     y = height/3
@@ -76,9 +110,11 @@ def partition_image(gray_img):
             block7, block8, block9]
 
 def feat_two_rectangles(gray_img, block_num):
-    '''two windows A and B
-    B - A
-    '''
+    """Calculates integral images for two windows A and B then finds their difference
+    :param gray_img: array of pixels
+    :param block_num: tuple (block's upper left corner, block's bottom right corner)
+    :return: I(B) - I(A) where I() = integral image
+    """
     half_x = (block_num[2]-block_num[0])/2 - 1
     A = (block_num[0], block_num[1], half_x, block_num[3]) 
     B = (half_x + 1, block_num[1], block_num[2], block_num[3])
@@ -88,9 +124,11 @@ def feat_two_rectangles(gray_img, block_num):
     return (B_sum - A_sum)
 
 def feat_three_rectangles(gray_img, block_num):
-    '''three windows A, B, and C
-    B - (A + C)
-    '''
+    """Calculates integral images for three windows A, B, and C
+    :param gray_img: array of pixels
+    :param block_num: tuple (block's upper left corner, block's bottom right corner)
+    :return: I(B) - (I(A) + I(C)) where I() = integral image
+    """
     third_x = (block_num[2]-block_num[0])/3 - 1
     
     A = (block_num[0], block_num[1], third_x, block_num[3])
@@ -103,9 +141,11 @@ def feat_three_rectangles(gray_img, block_num):
     return (B_sum - (A_sum + C_sum))
 
 def feat_four_rectangles(gray_img, block_num):
-    '''four windows in a square [A, B][C, D]
-    (A + D) - (B + C)
-    '''
+    """Calculates integral images for four windows in a square [A, B][C, D]
+    :param gray_img: array of pixels
+    :param block_num: tuple (block's upper left corner, block's bottom right corner)
+    :return: (I(A) + I(D)) - (I(B) + I(C)) where I() = integral image
+    """
     half_x = (block_num[2] - block_num[0])/2 - 1
     half_y = (block_num[3] - block_num[1])/2 - 1
     
@@ -126,34 +166,57 @@ def feat_four_rectangles(gray_img, block_num):
 # report
   
 def calculate_error(prediction, label):
+  	"""Calculates error of classification
+    :param prediction: label given from classifier
+    :param label: actual label
+    :return: 0 if correct, 1 if incorrect
+    """
     if prediction == label:
         return 0
     else:
         return 1
 
 def calculate_alpha(error):
+  	"""Calculates weight used to update the distribution
+    :param error_counter: sum of incorrect classifications
+    :return: weight
+    """
     alpha = 0
     if error != 0:
         alpha = (.5) * np.log((1-error)/error)
     return alpha
                 
 def normalization_constant(dists):
+  	"""Calculates constant to normalize distribution so that the integral sums to 1
+    :param dists: List of distribution values
+    :return: constant value
+    """
     normalization = sum(dists)
     return normalization
 
 def get_gray_imgs(pos_filepath, neg_filepath):
+  	"""Labels and converts images to gray scale
+    :param pos_filepath: path of directory containing all pos images
+    :param neg_filepath: path of directory containing all neg images
+    :return: list of tuples(gray image, label)
+    """
     pos_images = load_data(pos_filepath, 1)
     neg_images = load_data(neg_filepath, -1)
     images = pos_images + neg_images
     gray_imgs = list()
     for image in images:
-        gray_imgs.append((readImage(image[0]),image[1]))
+        gray_imgs.append((read_image(image[0]), image[1]))
     return gray_imgs
   
 #Call all features in here
 def weak_learner(gray_imgs, features, labels, distribution):
-  #add distribution part
-    
+     """Creates decision trees for each feature and each block and calculates training error. Selects the best model for a specific feature and block based on lowest training error.
+    :param gray_imgs: list where each element is an array of pixels
+    :param features: list of function names to caculate features
+    :param labels: list of 1's or -1's
+    :param distribution: list of weights for each image
+    :return: tuple of (best_model, best_block, best_feature, lowest_error_rate, correctly_classified)
+    """
     integral_images_dict = dict()
     start1 = time.time()
     for gray_img in gray_imgs:
@@ -200,6 +263,11 @@ def weak_learner(gray_imgs, features, labels, distribution):
     return (best_model, best_block, best_feature, lowest_error_rate, correctly_classified)
   
 def adaboost_train(pos_filepath, neg_filepath):
+  	"""Performs adaboost on training set
+    :param pos_filepath: directory of positive files
+    :param neg_filepath: directory of negative files
+    :return: tuple of (alphas, best_models, best_blocks, best_features) where alphas are the weights of the models
+    """
     images = get_gray_imgs(pos_filepath, neg_filepath)
 
     gray_imgs = [x[0] for x in images]
@@ -241,6 +309,13 @@ def adaboost_train(pos_filepath, neg_filepath):
     return alphas, best_models, best_blocks, best_features
 
 def calculate_final_hypothesis(gray_img, alphas, best_models, best_blocks, best_features):
+    """Calculates the classification for a test image
+    :param gray_img: array of pixel values
+    :param alphas: list where the elements are weights wegihts of the models
+    :param best_models: list of models selected by adaboost
+    :param best_blocks: list of blocks selected by adaboost
+    :param best_features: list of features selected by adaboost
+    """
     T = range(len(alphas))
     blocks = partition_image(gray_img)    
     
@@ -253,6 +328,7 @@ def calculate_final_hypothesis(gray_img, alphas, best_models, best_blocks, best_
     classification = np.sign(sum(products))
     return classification
 
+
 # def adaboost_tests(alphas, pos_test_directory, neg_test_directory):
 #     error = 0
 #     gray_imgs = get_gray_imgs(pos_test_directory, neg_test_directory)
@@ -260,28 +336,57 @@ def calculate_final_hypothesis(gray_img, alphas, best_models, best_blocks, best_
 #         prediction = adaboost_test(alphas, gray_img)
 #         error += calculate_error(prediction, gray_img[1])
 #     return error
-  
+
+def test_training_images(pos_testpath, neg_testpath, trained_model):
+    """ test files in test directory
+    :param pos_testpath:
+    :param neg_testpath:
+    :param trained_model:
+    :return:
+    """
+    images = get_gray_imgs(pos_testpath, neg_testpath)
+
+    positive_counter = 0
+    negative_counter = 0
+    pos_acc = 0
+    neg_acc = 0
+
+    for gray_img, label in images:
+        if label == 1:
+            positive_counter += 1.0
+        elif label == -1:
+            negative_counter += 1.0
+
+        prediction = calculate_final_hypothesis(gray_img, trained_model[0],trained_model[1],trained_model[2],trained_model[3])
+
+        if prediction == label and label == 1:
+            pos_acc += 1.0
+        if prediction == label and label == -1:
+            neg_acc += 1.0
+
+    print "positive accuracy", pos_acc/positive_counter
+    print "negative accuracy", neg_acc/negative_counter
+    print "overall accuracy", (pos_acc + neg_acc)/(positive_counter + negative_counter)
+    return
+
 def main():
     red = adaboost_train(pos_filepath, neg_filepath)
-    gray_img = readImage(imagefile)
+    gray_img = read_image(imagefile)
     calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
 
-    gray_img = readImage(imagefile2)
+    test_training_images(pos_testpath, neg_testpath, red)
+
+    gray_img = read_image(imagefile2)
     calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
 
-    gray_img = readImage(imagefile3)
+    gray_img = read_image(imagefile3)
     calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
 
-    gray_img = readImage(imagefile4)
+    t = time.time()
+    gray_img = read_image(imagefile4)
     calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
+    print time.time() - t
     return
                       
 if __name__ == '__main__':
     main()
-
->>> from sklearn import tree
->>> X = [[0, 0], [1, 1],[1,0]]
->>> Y = [0, 1]
->>> clf = tree.DecisionTreeClassifier()
->>> clf = clf.fit(X, Y)
-clf.predict(X).tolist()
