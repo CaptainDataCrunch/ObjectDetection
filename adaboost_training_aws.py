@@ -336,7 +336,7 @@ def main():
 	args = parseArgument()
 	neg_filepath = args['neg_filepath'][0]
 	pos_filepath = args['pos_filepath'][0]
-	T = args['T'][0]
+	T = int(args['T'][0])
 
 	red = adaboost_train(pos_filepath, neg_filepath, T)
 	save_params(T, red[0], red[1], red[2], red[3], red[4])
