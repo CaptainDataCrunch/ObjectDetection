@@ -75,7 +75,7 @@ def features_size():
     return size_dict
 
 
-def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, height=120, increment=5,
+def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, height=120, increment=10,
                         feat_dict=None):
     if feat_dict is None:
         feat_dict = dict()
@@ -88,11 +88,14 @@ def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, 
     while x1 < width:
         while y1 < height:
             coords = (x0, y0, x1, y1)
+            print coords
             feat_dict[(feature, coords)] = [feature(x, coords) for x in gray_imgs]
             y0 += increment
             y1 += increment
         x0 += increment
         x1 += increment
+        y0 = 0
+        y1 = feat_height
 
     return feat_dict
 
@@ -175,8 +178,9 @@ def adaboost_train(pos_filepath, neg_filepath, T=3):
     correctly_classified = list()
     error_counter = 0
 
-    features = [feat_two_rectangles, feat_three_rectangles_horizontal, feat_three_rectangles_vertical,
-                feat_four_rectangles]
+    #features = [feat_two_rectangles, feat_three_rectangles_horizontal, feat_three_rectangles_vertical,
+    #            feat_four_rectangles]
+    features = [feat_two_rectangles]
     size_dict = features_size()
     integral_images_dict = loop_features(gray_imgs, features, size_dict)
 

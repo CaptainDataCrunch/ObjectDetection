@@ -13,7 +13,7 @@ pos_testpath = '/Users/vincentpham/Desktop/tester/positive_test/'
 
 def main():
 	start = time.time()
-	trained_model = adaboost_train(pos_filepath, neg_filepath, T = 3)
+	trained_model = adaboost_train(pos_filepath, neg_filepath, T = 2)
 	cp1 = time.time()
 	print "alphas:", trained_model[0]
 	print "training finished in:", ((cp1 - start)/60), "min"
