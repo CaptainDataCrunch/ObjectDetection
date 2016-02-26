@@ -10,11 +10,16 @@ def feat_two_rectangles(gray_img, coords):
 	:return: I(B) - I(A) where I() = integral image
 	"""
 	half_x = (coords[2] - coords[0]) / 2 - 1
-	A = (coords[0], coords[1], half_x, coords[3])
-	B = (half_x + 1, coords[1], coords[2], coords[3])
+	A = (coords[0], coords[1], coords[0] + half_x, coords[3])
+	B = (coords[0] + half_x + 1, coords[1], coords[2], coords[3])
 
 	A_sum = integralImage(gray_img,A)
+	# print gray_img.shape
+	#print A
+	#print B
+	#print A_sum
 	B_sum = integralImage(gray_img,B)
+	#print B_sum
 	return (B_sum - A_sum)
 
 def feat_three_rectangles_horizontal(gray_img, coords, height1=24, height2=14):

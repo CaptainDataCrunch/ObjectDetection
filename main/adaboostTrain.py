@@ -75,7 +75,7 @@ def features_size():
     return size_dict
 
 
-def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, height=120, increment=10,
+def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, height=120, increment=20,
                         feat_dict=None):
     if feat_dict is None:
         feat_dict = dict()
@@ -104,7 +104,7 @@ def loop_features(gray_imgs, features, size_dict):
     feat_dict = None
     for feat in features:
         feat_width, feat_height = size_dict[feat]
-        feat_dict = get_feature_values2(gray_imgs, feat, feat_width, feat_height, size_dict)
+        feat_dict = get_feature_values2(gray_imgs, feat, feat_height, feat_width, feat_dict = feat_dict)
 
     return feat_dict
 
@@ -148,7 +148,7 @@ def weak_learner(gray_imgs, integral_images_dict, features, labels, distribution
         error_rate = v[0]
         predictions = v[1]
         if error_rate < lowest_error_rate:
-            best_feature = features[k[1]]
+            best_feature = k[1]
             best_coords = k[2]
             lowest_error_rate = error_rate
             best_model = k[0]
