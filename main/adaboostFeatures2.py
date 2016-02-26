@@ -29,7 +29,7 @@ def feat_three_rectangles_horizontal(gray_img, coords, height1=24, height2=14):
 	:return: I(B) - (I(A) + I(C)) where I() = integral image
 	"""
 
-	A = (coords[0], coords[1], coords[2], coords[13])
+	A = (coords[0], coords[1], coords[2], coords[3] + height1)
 	B = (coords[0], coords[1] + height1 + 1, coords[2], coords[1] + height1 + height2)
 	C = (coords[0], coords[1] + height1 + height2 + 1, coords[2], coords[3])
 
@@ -63,10 +63,10 @@ def feat_four_rectangles(gray_img, coords):
 	half_x = (coords[2] - coords[0]) / 2 - 1
 	half_y = (coords[3] - coords[1]) / 2 - 1
 
-	A = (coords[0], coords[1], half_x, half_y)
-	B = (half_x + 1, coords[1], coords[2], half_y)
-	C = (coords[0], half_y + 1, half_x, coords[3])
-	D = (half_x + 1, half_y + 1, coords[2], coords[3])
+	A = (coords[0], coords[1], coords[0] + half_x, coords[1] + half_y)
+	B = (coords[0] + half_x + 1, coords[1], coords[2] + 2*half_x, coords[1] + half_y)
+	C = (coords[0], coords[1] + half_y + 1, coords[0] + half_x, coords[3])
+	D = (coords[0] + half_x + 1, coords[1] + half_y + 1, coords[2], coords[3])
 
 	A_sum = integralImage(gray_img,A)
 	B_sum = integralImage(gray_img,B)
