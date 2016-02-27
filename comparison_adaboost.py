@@ -18,8 +18,8 @@ imagefile3 = 'image_0294.jpg'
 imagefile4 = 'image_0078.jpg'
 
 # make sure full path
-neg_filepath = '/Users/iLitton/Desktop/sample/neg/'
-pos_filepath = '/Users/iLitton/Desktop/sample/pos/'
+neg_filepath = '/Users/iLitton/Desktop/sample/negative/'
+pos_filepath = '/Users/iLitton/Desktop/sample/positive/'
 
 neg_testpath = '/Users/iLitton/Desktop/sample/negative_test/'
 pos_testpath = '/Users/iLitton/Desktop/sample/positive_test/'
@@ -213,20 +213,20 @@ def get_gray_imgs(pos_filepath, neg_filepath):
 
 def comparison_preprocessing(gray_imgs, features):
     x_values = dict()
-    for gray_img in gray_imgs:
-        img_counter = 0
+    for i, gray_img in enumerate(gray_imgs):
+        print i
         diffs = list()
         blocks = partition_image(gray_img)
-        for i, feature in enumerate(features):
-            for j, block in enumerate(blocks):
+        for j, feature in enumerate(features):
+            for k, block in enumerate(blocks):
                 diff = feature(gray_img, block)
-                diffs.append(diff)
-                if img_counter not in x_values:
-                    print diffs
-                    print (img_counter, len(diffs))
-                    x_values[img_counter] = diffs
-    
-    print x_values                
+                # diffs.append(diff)
+                if i not in x_values:
+                    diffs.append(diff)
+                    x_values[i] = diffs
+                else:
+                    x_values[i].append(diff)
+            
     x_features = x_values.values()
     # print x_features
     return x_features
@@ -433,6 +433,8 @@ def main():
     test_labels = [x[1] for x in test_files]
     
     features = [feat_two_rectangles, feat_three_rectangles, feat_four_rectangles]
+    
+    comparison_preprocessing(train_imgs, features)
     
     bdt = comparison_adaboost(train_imgs, features, train_labels)
     calculate_comparison_accuracy(bdt, test_imgs, features, test_labels)
