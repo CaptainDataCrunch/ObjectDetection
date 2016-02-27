@@ -64,7 +64,6 @@ def get_feature_values(gray_imgs, features):
     print "time of triple loop is:", ((end1 - start1) / 60), "min"
     return integral_images_dict
 
-
 def features_size():
     size_dict = dict()
     size_dict[feat_two_rectangles] = (24, 28)
@@ -75,7 +74,7 @@ def features_size():
     return size_dict
 
 
-def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, height=120, increment=20,
+def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, height=120, increment=5,
                         feat_dict=None):
     if feat_dict is None:
         feat_dict = dict()
@@ -88,7 +87,7 @@ def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, 
     while x1 < width:
         while y1 < height:
             coords = (x0, y0, x1, y1)
-            print coords
+            #print coords
             feat_dict[(feature, coords)] = [feature(x, coords) for x in gray_imgs]
             y0 += increment
             y1 += increment
@@ -103,6 +102,7 @@ def get_feature_values2(gray_imgs, feature, feat_height, feat_width, width=150, 
 def loop_features(gray_imgs, features, size_dict):
     feat_dict = None
     for feat in features:
+        print feat
         feat_width, feat_height = size_dict[feat]
         feat_dict = get_feature_values2(gray_imgs, feat, feat_height, feat_width, feat_dict = feat_dict)
 
@@ -123,7 +123,7 @@ def create_error_dict(integral_images_dict, labels, distribution):
         error_rate = sum([x[0] * x[1] for x in zip(distribution, incorrectly_classified)])
         error_dict[(clf, k[0], k[1])] = (error_rate, predictions)
         # print v
-        print "error rate of key", k, "is", error_rate
+        #print "error rate of key", k, "is", error_rate
     return error_dict
 
 
@@ -162,7 +162,7 @@ def adaboost_train(pos_filepath, neg_filepath, T=3):
     """Performs adaboost on training set
     :param pos_filepath: directory of positive files
     :param neg_filepath: directory of negative files
-    :return: tuple of (alphas, best_models, best_blocks, best_features) where alphas are the weights of the models
+    :return: tuple of (alphas, best_models, best_coords, best_features) where alphas are the weights of the models
     """
     images = get_gray_imgs(pos_filepath, neg_filepath)
 
@@ -170,28 +170,25 @@ def adaboost_train(pos_filepath, neg_filepath, T=3):
     labels = [x[1] for x in images]
 
     n = len(gray_imgs)
-    error = 0
 
     dists = [1.0 / n for i in range(n)]
 
     alphas = list()
-    correctly_classified = list()
-    error_counter = 0
 
-    #features = [feat_two_rectangles, feat_three_rectangles_horizontal, feat_three_rectangles_vertical,
-    #            feat_four_rectangles]
-    features = [feat_two_rectangles]
+    features = [feat_two_rectangles, feat_three_rectangles_horizontal, feat_three_rectangles_vertical,
+                feat_four_rectangles]
+    #features = [feat_four_rectangles]
     size_dict = features_size()
     integral_images_dict = loop_features(gray_imgs, features, size_dict)
 
     best_models = list()
     best_features = list()
-    best_blocks = list()
+    best_coords = list()
     error_rate_list = list()
     for t in range(T):
         print t
         error_dict = create_error_dict(integral_images_dict, labels, dists)
-        best_model, best_block, best_feature, lowest_error_rate, correctly_classified = weak_learner(gray_imgs,
+        best_model, best_coord, best_feature, lowest_error_rate, correctly_classified = weak_learner(gray_imgs,
                                                                                                      integral_images_dict,
                                                                                                      features, labels,
                                                                                                      dists, error_dict)
@@ -200,7 +197,7 @@ def adaboost_train(pos_filepath, neg_filepath, T=3):
         print lowest_error_rate
         best_models.append(best_model)
         best_features.append(best_feature)
-        best_blocks.append(best_block)
+        best_coords.append(best_coord)
         alpha = calculate_alpha(lowest_error_rate)
         alphas.append(alpha)
         for i in range(n):
@@ -212,4 +209,4 @@ def adaboost_train(pos_filepath, neg_filepath, T=3):
         normalization = normalization_constant(dists)
         dists = [x / normalization for x in dists]
     # print "distributution", dists
-    return alphas, best_models, best_blocks, best_features, error_rate_list
+    return alphas, best_models, best_coords, best_features, error_rate_list, error_dict
