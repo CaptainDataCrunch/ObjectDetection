@@ -1,0 +1,17 @@
+(lp0
+cadaboostFeatures2
+feat_three_rectangles_horizontal
+p1
+acadaboostFeatures2
+feat_two_rectangles
+p2
+ag1
+acadaboostFeatures2
+feat_three_rectangles_vertical
+p3
+ag3
+ag1
+ag2
+ag2
+ag1
+a.
