@@ -49,3 +49,10 @@ If you are using Anaconda, this worked for us:
 
 We also used the [Sklearn](http://scikit-learn.org/stable/install.html), a popular package for machine learning, to create the decision tree classifiers. 
 Installation instruction can be found in the link above if not already installed.
+
+### Contributors
+
+* Isabel Litton : [LinkedIn](https://www.linkedin.com/in/ilitton) 
+* Vincent Pham : [LinkedIn](https://www.linkedin.com/in/vincentpham1991) 
+* Henry Tom : [LinkedIn](https://www.linkedin.com/in/henrytomsf)
+
