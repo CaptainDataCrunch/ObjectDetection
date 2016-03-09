@@ -31,3 +31,7 @@ def load_params(alpha_file='save_alphas.p', model_file='save_models.p', block_fi
 	test_models = pickle.load(open(model_file, "rb"))
 	test_features = pickle.load(open(feature_file, "rb"))
 	return test_alphas, test_models, test_blocks, test_features
+
+def load_param(path, file):
+	param = pickle.load(open(path + file, "rb"))
+	return param

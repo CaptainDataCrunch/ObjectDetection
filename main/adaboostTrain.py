@@ -6,8 +6,7 @@ from sklearn import tree
 import time
 import sys
 
-# from adaboostFeatures import *
-from adaboostFeatures2 import *
+from adaboostFeatures import *
 from adaboostImages import *
 
 sys.setrecursionlimit(10000)

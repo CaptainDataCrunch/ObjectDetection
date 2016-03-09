@@ -1,7 +1,7 @@
 __authors__ = "Isabel Litton, Vincent Pham, Henry Tom"
 __team__ = "CaptainDataCrunch"
 
-from adaboostImages import *
+from main.adaboostImages import *
 
 
 def feat_two_rectangles(gray_img, block_num):

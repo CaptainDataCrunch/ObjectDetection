@@ -33,15 +33,13 @@ def hsv_to_feature(hsv,N,C_h,C_s,C_v):
 def build_color_featurevector(pars):
   """ Takes an image file and the parameters of the feature vector and builds such a vector"""
   pixels,N,C_h,C_s,C_v =pars
-  #rgb_bild = file_to_rgb(filename)
-  #assert (rgb_bild.shape[2]==3)
   return hsv_to_feature(skimage.color.rgb2hsv(pixels),N,C_h,C_s,C_v)
 
-def build_color_featurematrix(file_list,N,C_h,C_s,C_v):
+def build_color_featurematrix(pixels,N,C_h,C_s,C_v):
     """ Builds the feature matrix of the jpegs in file list
     return featurematrix where the i-th row corresponds to the feature in the i-th image of the file list"
     """
     pool = multiprocessing.Pool()
-    x = [(f,N,C_h,C_s,C_v) for f in file_list]
+    x = [(f,N,C_h,C_s,C_v) for f in pixels]
     res = pool.map(build_color_featurevector,x)
     return np.array(res)

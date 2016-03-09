@@ -5,6 +5,10 @@ from sklearn import svm
 
 
 def classify_color_feature(F,y):
+  ''' Get cross-validated training accuracy
+   :param F: Features
+   :param y: classification label
+  '''
   start = time.time()
   clf = svm.SVC(kernel='rbf',gamma=0.001)
   scores = cross_validation.cross_val_score(clf, F, y, cv=5,n_jobs=-1)
