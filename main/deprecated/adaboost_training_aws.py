@@ -8,19 +8,24 @@ from sklearn import tree
 import time
 import sys
 import pickle
+import argparse
 
 sys.setrecursionlimit(10000)
-imagefile = 'image_0033.jpg'
-imagefile2 = 'image_0467.jpg'
-imagefile3 = 'image_0294.jpg'
-imagefile4 = 'image_0078.jpg'
 
 # make sure full path
-neg_filepath = '/Users/htom/Desktop/MSAN_Spring_2016/AdvML/Project/good_dataset/cars_brad_bg/subset/'
-pos_filepath = '/Users/htom/Desktop/MSAN_Spring_2016/AdvML/Project/good_dataset/cars_brad/subset/'
+# neg_filepath = '/Users/htom/Desktop/MSAN_Spring_2016/AdvML/Project/good_dataset/cars_brad_bg/subset/'
+# pos_filepath = '/Users/htom/Desktop/MSAN_Spring_2016/AdvML/Project/good_dataset/cars_brad/subset/'
 
-neg_testpath = '/Users/vincentpham/Desktop/tester/negative_test/'
-pos_testpath = '/Users/vincentpham/Desktop/tester/positive_test/'
+def parseArgument():
+	"""
+	Code for parsing arguments
+	"""
+	parser = argparse.ArgumentParser(description='Parsing a file.')
+	parser.add_argument('--neg_filepath', nargs=1, required=True)
+	parser.add_argument('--pos_filepath', nargs=1, required=True)
+	parser.add_argument('--T', nargs=1, required=True)
+	args = vars(parser.parse_args())
+	return args
 
 def load_data(filepath, label_value):
 	"""Loads in image and label
@@ -44,7 +49,7 @@ def read_image(imagefile):
 	gray_img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
 	return gray_img
-  
+
 def s(gray_img,x,y):
 	"""Cumulative row sum to calculate integral image
 	:param gray_img: image in gray scale
@@ -72,7 +77,7 @@ def ii(gray_img,x,y):
 	else:
 		sums += ii(gray_img,x-1,y) + s(gray_img,x,y)
 	return sums
-  
+
 def integralImage(gray_img, locations):
 	"""Calculates integral image to compute rectangle features
 	:param gray_img: image in gray scale
@@ -165,7 +170,7 @@ def feat_four_rectangles(gray_img, block_num):
 # function for windowing for test
 # function to output 4 corners of box to mark image
 # report
-  
+
 def calculate_error(prediction, label):
 	"""Calculates error of classification
 	:param prediction: label given from classifier
@@ -208,16 +213,8 @@ def get_gray_imgs(pos_filepath, neg_filepath):
 	for image in images:
 		gray_imgs.append((read_image(image[0]), image[1]))
 	return gray_imgs
-  
-#Call all features in here
-def weak_learner(gray_imgs, features, labels, distribution):
-	"""Creates decision trees for each feature and each block and calculates training error. Selects the best model for a specific feature and block based on lowest training error.
-	:param gray_imgs: list where each element is an array of pixels
-	:param features: list of function names to caculate features
-	:param labels: list of 1's or -1's
-	:param distribution: list of weights for each image
-	:return: tuple of (best_model, best_block, best_feature, lowest_error_rate, correctly_classified)
-	"""
+
+def get_feature_values(gray_imgs, features):
 	integral_images_dict = dict()
 	start1 = time.time()
 	for gray_img in gray_imgs:
@@ -232,6 +229,18 @@ def weak_learner(gray_imgs, features, labels, distribution):
 					integral_images_dict[key_img] = [diff]
 	end1= time.time()
 	print "time of triple loop is:", ((end1 - start1)/60), "min"
+	return integral_images_dict
+
+#Call all features in here
+def weak_learner(gray_imgs, integral_images_dict, features, labels, distribution):
+	"""Creates decision trees for each feature and each block and calculates training error. Selects the best model for a specific feature and block based on lowest training error.
+	:param gray_imgs: list where each element is an array of pixels
+	:param integral_images_dict:
+	:param features: list of function names to caculate features
+	:param labels: list of 1's or -1's
+	:param distribution: list of weights for each image
+	:return: tuple of (best_model, best_block, best_feature, lowest_error_rate, correctly_classified)
+	"""
 	best_feature = []
 	correctly_classified = []
 	lowest_error_rate = 1.0
@@ -262,8 +271,8 @@ def weak_learner(gray_imgs, features, labels, distribution):
 	end2 = time.time()
 	print "time of classification loop is:", ((end2 - start2)/60), "min"
 	return (best_model, best_block, best_feature, lowest_error_rate, correctly_classified)
-  
-def adaboost_train(pos_filepath, neg_filepath):
+
+def adaboost_train(pos_filepath, neg_filepath, T=3):
 	"""Performs adaboost on training set
 	:param pos_filepath: directory of positive files
 	:param neg_filepath: directory of negative files
@@ -283,15 +292,16 @@ def adaboost_train(pos_filepath, neg_filepath):
 	correctly_classified = list()
 	error_counter = 0
 
-	T = 3
-
 	features = [feat_two_rectangles, feat_three_rectangles, feat_four_rectangles]
+	integral_images_dict = get_feature_values(gray_imgs, features)
 	best_models = list()
 	best_features = list()
 	best_blocks = list()
 
+	error_rate_list = list()
 	for t in range(T):
-		best_model, best_block, best_feature, lowest_error_rate, correctly_classified = weak_learner(gray_imgs, features, labels, dists)
+		best_model, best_block, best_feature, lowest_error_rate, correctly_classified = weak_learner(gray_imgs, integral_images_dict, features, labels, dists)
+		error_rate_list.append(lowest_error_rate)
 		print best_model, best_block, best_feature, lowest_error_rate, correctly_classified
 		print lowest_error_rate
 		best_models.append(best_model)
@@ -306,75 +316,16 @@ def adaboost_train(pos_filepath, neg_filepath):
 				dists[i] = dists[i]*np.exp(alpha)
 		normalization = normalization_constant(dists)
 		dists = [x/normalization for x in dists]
-		print "distributution", dists
-	return alphas, best_models, best_blocks, best_features
+		#print "distributution", dists
+	return alphas, best_models, best_blocks, best_features, error_rate_list
 
-def calculate_final_hypothesis(gray_img, alphas, best_models, best_blocks, best_features):
-	"""Calculates the classification for a test image
-	:param gray_img: array of pixel values
-	:param alphas: list where the elements are weights wegihts of the models
-	:param best_models: list of models selected by adaboost
-	:param best_blocks: list of blocks selected by adaboost
-	:param best_features: list of features selected by adaboost
-	"""
-	T = range(len(alphas))
-	blocks = partition_image(gray_img)
-
-	haar = [best_features[i](gray_img, blocks[best_blocks[i]]) for i in range(len(best_blocks))]
-	haar = [[x] for x in haar]
-	predictions = [best_models[i].predict(haar[i]) for i in range(len(best_models))]
-
-	products = [x[0]*x[1] for x in zip(predictions, alphas)]
-
-	classification = np.sign(sum(products))
-	return classification
-
-# def adaboost_tests(alphas, pos_test_directory, neg_test_directory):
-#     error = 0
-#     gray_imgs = get_gray_imgs(pos_test_directory, neg_test_directory)
-#     for gray_img in gray_imgs:
-#         prediction = adaboost_test(alphas, gray_img)
-#         error += calculate_error(prediction, gray_img[1])
-#     return error
-
-def test_training_images(pos_testpath, neg_testpath, trained_model):
-	""" test files in test directory
-	:param pos_testpath:
-	:param neg_testpath:
-	:param trained_model:
-	:return:
-	"""
-	images = get_gray_imgs(pos_testpath, neg_testpath)
-
-	positive_counter = 0
-	negative_counter = 0
-	pos_acc = 0
-	neg_acc = 0
-
-	for gray_img, label in images:
-		if label == 1:
-			positive_counter += 1.0
-		elif label == -1:
-			negative_counter += 1.0
-
-		prediction = calculate_final_hypothesis(gray_img, trained_model[0],trained_model[1],trained_model[2],trained_model[3])
-
-		if prediction == label and label == 1:
-			pos_acc += 1.0
-		if prediction == label and label == -1:
-			neg_acc += 1.0
-
-	print "positive accuracy", pos_acc/positive_counter
-	print "negative accuracy", neg_acc/negative_counter
-	print "overall accuracy", (pos_acc + neg_acc)/(positive_counter + negative_counter)
-	return
-
-def save_params(alphas, best_models, best_blocks, best_features):
+def save_params(T, alphas, best_models, best_blocks, best_features, error_rate_list):
 	# saving parameters to files
-	pickle.dump(alphas, open("save_alphas.p", "wb"))
-	pickle.dump(best_blocks, open("save_blocks.p", "wb"))
-	pickle.dump(best_models, open("save_models.p", "wb"))
-	pickle.dump(best_features, open("save_features.p", "wb"))
+	pickle.dump(alphas, open("save_alphas_" + str(T) + ".p", "wb"))
+	pickle.dump(best_blocks, open("save_blocks_" + str(T) + ".p", "wb"))
+	pickle.dump(best_models, open("save_models_" + str(T) + ".p", "wb"))
+	pickle.dump(best_features, open("save_features_" + str(T) + ".p", "wb"))
+	pickle.dump(error_rate_list, open("save_error_rate_list_" + str(T) + ".p", "wb"))
 
 	return "Parameters saved!"
 
@@ -387,38 +338,14 @@ def load_params(alpha_file='save_alphas.p', model_file='save_models.p', block_fi
 	return test_alphas, test_models, test_blocks, test_features
 
 def main():
-	red = adaboost_train(pos_filepath, neg_filepath)
-	gray_img = read_image(imagefile)
-	calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
+	args = parseArgument()
+	neg_filepath = args['neg_filepath'][0]
+	pos_filepath = args['pos_filepath'][0]
+	T = int(args['T'][0])
 
-	test_training_images(pos_testpath, neg_testpath, red)
-
-	gray_img = read_image(imagefile2)
-	calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
-
-	gray_img = read_image(imagefile3)
-	calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
-
-	t = time.time()
-	gray_img = read_image(imagefile4)
-	calculate_final_hypothesis(gray_img, red[0],red[1],red[2],red[3])
-	print time.time() - t
+	red = adaboost_train(pos_filepath, neg_filepath, T)
+	save_params(T, red[0], red[1], red[2], red[3], red[4])
 	return
 
 if __name__ == '__main__':
 	main()
-
-# # testing code to save parameters and output
-# import pickle
-#
-# # saving parameters to files
-# pickle.dump(alphas, open("save_alphas.p", "wb"))
-# pickle.dump(best_blocks, open("save_blocks.p", "wb"))
-# pickle.dump(best_models, open("save_models.p", "wb"))
-# pickle.dump(best_features, open("save_features.p", "wb"))
-#
-# # loading parameters from files
-# test_alphas = pickle.load(open("save_alphas.p", "rb"))
-# test_blocks = pickle.load(open("save_blocks.p", "rb"))
-# test_models = pickle.load(open("save_models.p", "rb"))
-# test_features = pickle.load(open("save_features.p", "rb"))
